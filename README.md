@@ -80,7 +80,7 @@ ref_FOC = FOC()
 # Options Chain of AAPL CALL options for 6 October 2023, with greeks
 options_chain = ref_FOC.get_options_chain_greeks("AAPL","2023-10-06",OptionType.CALL)
 ```
-Fetch options chain with greeks
+Fetch single options contract
 ---------------------------------
 To fetch single options contract for a specific symbol, you can
 simply use:
