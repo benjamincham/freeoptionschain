@@ -27,7 +27,7 @@ FOC is created to address the limitations and issues associated with free APIs a
 | ------ | ------ | ---- |
 | ✅ | First Release | Fetch options chain(w/o) greeks, single options contract, expiration dates |
 | In-progress | Streaming data | Continuously provide options chain(w/o) greeks, single options data   |
-| ❏ | Historical options data | Every time when Options data are fetch, the data are stored in a central online database. I am considering either running a cloud instance or hoping for significant adoption of the library to collectively capture all options data. |
+| ❏ | Historical options data | Options data are fetched and stored in a central online database. I'm considering either using a cloud instance or relying on widespread library adoption to capture all options data collectively. |
 ---
 
 
