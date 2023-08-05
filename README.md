@@ -53,7 +53,7 @@ simply use:
 #create instance
 ref_FOC = FOC()
 
-# Options Chain of AAPL CALL options for 6 October 2023
+# Fetch options expiration dates for 'AAPL'
 options_chain = ref_FOC.get_expiration_dates("AAPL")
 ```
 Fetch options chain with price
@@ -89,8 +89,10 @@ simply use:
 #create instance
 ref_FOC = FOC()
 
-# AAPL CALL options with strike $200 for 6 October 2023, with greeks
-options_contract = ref_FOC.get_options_price_data(ref_FOC.get_contract_symbol("AAPL",'2023-10-06','CALL',200.0))
+# get options contract symbol for AAPL CALL options with strike $200 for 6 October 2023
+contract_symbol = ref_FOC.get_contract_symbol("AAPL",'2023-10-06','CALL',200.0)
+#fetch options contract with greeks
+options_contract = ref_FOC.get_options_price_data(contract_symbol)
 ```
 What else?
 ----------
