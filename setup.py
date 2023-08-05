@@ -7,6 +7,8 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
     name='freeoptionschain',
+    
+    version='{{VERSION_PLACEHOLDER}}',
 
     description='This library module retrieves stock options data from NASDAQ.',
 
