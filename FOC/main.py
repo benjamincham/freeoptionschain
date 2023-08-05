@@ -1,5 +1,5 @@
-from defined import *
-from db import *
+from .defined import *
+from .db import *
 import requests, pytz,threading, concurrent.futures, pytz
 import pandas as pd
 import yfinance as yf
@@ -59,7 +59,7 @@ class FOC:
                 df_to_save['tickersymbol'] = tickersymbol
                 df_to_save['expiration_date'] = expiration_date
                 df_to_save['timestamp'] = self.get_timestamp()
-                self.dbconn.insert_data("options_chain_greeks",df_to_save)
+                self.dbconn.inser_data("options_chain_greeks",df_to_save)
                 
             return options_chain
     
@@ -250,19 +250,3 @@ class FOC:
                 self.dbconn.insert_data("options_price_data", df_to_save)
             
         return options_price_data
-        
-
-if __name__ == "__main__":
-
-    ref_FOC = FOC()
-    
-    # results = ref_FOC.get_options_chain("AMC","2023-08-11",OptionType.CALLPUT)
-    # results = ref_FOC.get_options_chain("AMC","2023-08-18",OptionType.PUT)
-    results = ref_FOC.get_options_chain("AMC","2023-08-25",OptionType.CALL)
-    results = ref_FOC.get_options_chain_greeks("AMC","2023-08-11",OptionType.CALLPUT)
-    # results = ref_FOC.get_options_greeks("AMC---230811C00004000")
-    # results = ref_FOC.get_expiration_dates("AMC")
-    # results = ref_FOC.get_contract_symbol("AMC",'2023-08-11','CALL',4.0)
-    # results = ref_FOC.get_options_data(ref_FOC.get_contract_symbol("AMC",'2023-08-11','CALL',4.0))
-    results = ref_FOC.get_options_price_data(ref_FOC.get_contract_symbol("AMC",'2023-08-11','CALL',4.0))
-    # print(results)

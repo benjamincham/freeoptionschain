@@ -8,7 +8,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 setup(
     name='freeoptionschain',
 
-    description='This downloads stock option data and calculates its greeks.',
+    description='This library module retrieves stock options data from NASDAQ.',
 
     long_description=long_description,
 
