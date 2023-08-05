@@ -42,7 +42,7 @@ Import
 ------
 
 ``` {.sourceCode .python}
-from FOC import *
+from FOC import FOC
 ```
 Fetch all options expiration dates for a stock
 ---------------------------------
