@@ -1,0 +1,8 @@
+requests
+pandas
+yfinance
+yahoo_fin
+pytz
+urllib3
+build
+cython
