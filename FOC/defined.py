@@ -10,6 +10,10 @@ def get_options_price_url(tickersymbol:str, expiration_date:str,option_type):
 def get_options_contract_url(tickersymbol:str, recordID:str):
     return f"https://api.nasdaq.com/api/quote/{tickersymbol}/option-chain?assetclass=stocks&recordID={recordID}"
 
+def get_stock_price_url(tickersymbol:str, last_n_price:int):
+    str_last_n_price = str(last_n_price)
+    return f"https://api.nasdaq.com/api/quote/{tickersymbol}/realtime-trades?&limit={str_last_n_price}"
+
 class OptionType(Enum):
     CALL = auto()
     PUT = auto()

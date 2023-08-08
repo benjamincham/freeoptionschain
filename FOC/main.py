@@ -1,6 +1,6 @@
 from .defined import *
 from .db import *
-import requests, pytz,threading, concurrent.futures, pytz
+import requests, pytz,threading, concurrent.futures, pytz,json
 import pandas as pd
 import yfinance as yf
 from yahoo_fin import options as op
@@ -220,6 +220,38 @@ class FOC:
         
         return options_data
     
+    def get_stocks_data(self,tickersymbol:str,last_n_price:int):
+        stocks_data = None
+
+        url = get_stock_price_url(tickersymbol,last_n_price)
+        headers = {
+                    'authority': 'api.nasdaq.com',
+                    'accept': 'application/json, text/plain, */*',
+                    'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
+                    'origin': 'https://www.nasdaq.com',
+                    'referer': 'https://www.nasdaq.com/',
+                    'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
+                    'sec-ch-ua-mobile': '?0',
+                    'sec-ch-ua-platform': '"Linux"',
+                    'sec-fetch-dest': 'empty',
+                    'sec-fetch-mode': 'cors',
+                    'sec-fetch-site': 'same-site',
+                    'user-agent': self.User_Agent,
+                    }
+        
+        response = requests.get(
+                                url,
+                                headers=headers,
+                                cookies=self.session.cookies,
+                                timeout=100
+                            )
+        try:
+            stocks_data = response.json()
+        except JSONDecodeError:
+            pass
+        
+        return stocks_data
+    
     def get_options_type(self,contract_symbol:str):
         char_optiontype = contract_symbol.split(contract_symbol_delimiter)[-1][6] #options type symbol is the 7th char, e.g. YYMMddT000000
         char_optiontype = char_optiontype.upper()
@@ -250,3 +282,16 @@ class FOC:
                 self.dbconn.insert_data("options_price_data", df_to_save)
             
         return options_price_data
+    
+    def get_stock_price(self, tickersymbol:str, last_n_price = 1):
+        stock_price_data = None
+        stock_data = self.get_stocks_data(tickersymbol,last_n_price)
+        if stock_data is not None:
+            stock_price_data = {}
+            stock_price_data['price'] = json.dumps(self.json_extract_node(stock_data,['data','rows']))
+            
+            price_meta = self.json_extract_node(stock_data,['data','topTable','rows'])[0]
+            stock_price_data.update(price_meta)
+            stock_price_data = pd.DataFrame(stock_price_data, index=[0])
+
+        return stock_price_data
