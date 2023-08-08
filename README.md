@@ -94,7 +94,7 @@ contract_symbol = ref_FOC.get_contract_symbol("AAPL",'2023-10-06','CALL',200.0)
 #fetch options contract with greeks
 options_contract = ref_FOC.get_options_price_data(contract_symbol)
 ```
-Fetch current price of the stock
+Fetch current price of a stock
 ---------------------------------
 To fetch the current price of a ticker symbol, you can
 simply use:
