@@ -36,7 +36,7 @@ setup(
 
     packages=['FOC'],
     
-    package_data={'FOC': ['db.cpython-38-x86_64-linux-gnu.so']},
+    package_data={'FOC': ['db.cpython-38-x86_64-linux-gnu.so','db.cp38-win_amd64.pyd']},
 
     install_requires=[
         'requests',
