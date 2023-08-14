@@ -20,7 +20,7 @@ FOC is created to address the limitations and issues associated with free APIs a
 - Fetch options chain with greeks
 - Fetch single options contract with details
 - Get all options expiration dates for a stock
-- (coming soon) Stream options chain and options contract
+- Stream quotes of options contract, options chain and stock price
 - (coming soon) Fetch historical options data
 
 ## ⏰ Status
