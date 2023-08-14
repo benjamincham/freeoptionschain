@@ -28,7 +28,7 @@ FOC is created to address the limitations and issues associated with free APIs a
 | Status      | Feature(s)              | Goal                                                                                                                                                                                                |
 | ----------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ✅          | First Release           | Fetch options chain(w/o) greeks, single options contract, expiration dates                                                                                                                          |
-| In-progress | Streaming data          | Continuously provide options chain(w/o) greeks, single options data                                                                                                                                 |
+| ✅          | Quote Streaming        | Continuously provide options chain(w/o) greeks, single options data                                                                                                                                 |
 | ❏           | Historical options data | Options data are fetched and stored in a central online database. I'm considering either using a cloud instance or relying on widespread library adoption to capture all options data collectively. |
 
 ---
@@ -49,8 +49,7 @@ from FOC import FOC
 
 ## Fetch all options expiration dates for a stock
 
-To fetch the options expiration date for a specific stock for a given expiration date, you can
-simply use:
+To fetch the options expiration date for a specific stock for a given expiration date, you can simply use:
 
 ```{.sourceCode .python}
 #create instance
@@ -62,8 +61,7 @@ options_chain = ref_FOC.get_expiration_dates("AAPL")
 
 ## Fetch options chain with price
 
-To fetch the options chain for a specific stock for a given expiration date, you can
-simply use:
+To fetch the options chain for a specific stock for a given expiration date, you can simply use:
 
 ```{.sourceCode .python}
 #create instance
@@ -75,8 +73,7 @@ options_chain = ref_FOC.get_options_chain("AAPL","2023-10-06",OptionType.CALL)
 
 ## Fetch options chain with greeks
 
-To fetch the options chain with greeks for a specific stock for a given expiration date, you can
-simply use:
+To fetch the options chain with greeks for a specific stock for a given expiration date, you can simply use:
 
 ```{.sourceCode .python}
 #create instance
@@ -88,8 +85,7 @@ options_chain = ref_FOC.get_options_chain_greeks("AAPL","2023-10-06",OptionType.
 
 ## Fetch single options contract
 
-To fetch single options contract for a specific symbol, you can
-simply use:
+To fetch single options contract for a specific symbol, you can simply use:
 
 ```{.sourceCode .python}
 #create instance
@@ -103,8 +99,7 @@ options_contract = ref_FOC.get_options_price_data(contract_symbol)
 
 ## Fetch current price of a stock
 
-To fetch the current price of a ticker symbol, you can
-simply use:
+To fetch the current price of a ticker symbol, you can simply use:
 
 ```{.sourceCode .python}
 #create instance
@@ -112,6 +107,28 @@ ref_FOC = FOC()
 
 #fetch current stock price for AAPL
 stock_price = ref_FOC.get_stock_price("AAPL")
+```
+
+## Create quote streams
+
+To create quote streams of options contract/chain or stock price, you can use:
+
+```{.sourceCode .python}
+#create instance
+ref_FOC = FOC()
+
+#example of callback function
+def example_result_callback(result):
+    print("Result from target function:", result)
+
+ref_FOC.create_quote_stream_stock_price(20,'AAPL',1,result_callback=example_result_callback)
+
+ref_FOC.create_quote_stream_options_price_data(20,'AMC---230811C00004000',result_callback=example_result_callback)
+
+ref_FOC.create_quote_stream_options_chain(5,"AMC","2023-10-20","CALL",result_callback=example_result_callback)
+
+ref_FOC.create_quote_stream_options_chain_greeks(5,"AMC","2023-10-20","CALL",result_callback=example_result_callback)
+    
 ```
 
 ## What else?
