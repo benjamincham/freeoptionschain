@@ -1,5 +1,6 @@
 from .defined import *
 from .db import * 
+from .intervalrunner import IntervalRunner
 
 from .main import FOC
 
@@ -10,5 +11,6 @@ __all__ = [
     'dbhubIO',
     'get_options_contract_url',
     'get_options_price_url',
-    'FOC'
+    'FOC',
+    'IntervalRunner'
 ]

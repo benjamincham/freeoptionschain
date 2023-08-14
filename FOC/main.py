@@ -1,5 +1,6 @@
 from .defined import *
 from .db import *
+from .intervalrunner import IntervalRunner
 import requests, pytz,threading, concurrent.futures, pytz,json
 import pandas as pd
 import yfinance as yf
@@ -16,6 +17,8 @@ class FOC:
         self.session = self.get_session()
         self.User_Agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
         self.cookies_dict = self.session.cookies.get_dict()
+        
+        self.quote_streams = {}
     
     def __del__(self):
         self.dbconn.close_connection()
@@ -37,9 +40,9 @@ class FOC:
             expiration_dates[idx] = datetime.strptime(expiration_date, "%B %d, %Y").strftime("%Y-%m-%d")
         return expiration_dates
     
-    def get_options_chain_greeks(self,tickersymbol:str,expiration_date:str,option_type:OptionType=OptionType.CALL):
+    def get_options_chain_greeks(self,tickersymbol:str,expiration_date:str,option_type):
             options_chain = None
-            
+            option_type = get_OptionType(option_type)
             options_chain = self.get_options_chain_price(tickersymbol,expiration_date,option_type)
             options_chain['tickersymbol'] = tickersymbol
             options_chain['recordID'] = options_chain['drillDownURL'].str.split('/').str[-1]
@@ -59,16 +62,16 @@ class FOC:
                 df_to_save['tickersymbol'] = tickersymbol
                 df_to_save['expiration_date'] = expiration_date
                 df_to_save['timestamp'] = self.get_timestamp()
-                self.dbconn.inser_data("options_chain_greeks",df_to_save)
+                self.dbconn.insert_data("options_chain_greeks",df_to_save)
                 
             return options_chain
     
     def get_timestamp(self):
         return datetime.now(pytz.timezone("US/Eastern")).strftime('%Y-%m-%d %H:%M:%S')
     
-    def get_options_chain(self,tickersymbol:str,expiration_date:str,option_type:OptionType=OptionType.CALL):
+    def get_options_chain(self,tickersymbol:str,expiration_date:str,option_type):
             options_chain = None
-            
+            option_type = get_OptionType(option_type)
             options_chain = self.get_options_chain_price(tickersymbol,expiration_date,option_type)
             if options_chain is not None:
                 options_chain = self.drop_uncessary_columns(options_chain,option_type)
@@ -259,6 +262,7 @@ class FOC:
         return optiontype
 
     def get_options_price_data(self,contract_symbol:str):
+
         options_price_data = None
         options_data = self.get_options_data(contract_symbol)
         options_data_fieldtype = 'optionChainCallData' if self.get_options_type(contract_symbol) == OptionType.CALL else 'optionChainPutData'
@@ -284,6 +288,7 @@ class FOC:
         return options_price_data
     
     def get_stock_price(self, tickersymbol:str, last_n_price = 1):
+        
         stock_price_data = None
         stock_data = self.get_stocks_data(tickersymbol,last_n_price)
         if stock_data is not None:
@@ -295,3 +300,43 @@ class FOC:
             stock_price_data = pd.DataFrame(stock_price_data, index=[0])
 
         return stock_price_data
+    
+    def create_quote_stream_stock_price(self, interval_secs:int, symbol:str, last_n_price = 1,result_callback=None):
+        
+        instance_IntervalRunner = IntervalRunner(interval_secs=interval_secs, target_func=self.get_stock_price, func_args=(symbol,last_n_price), result_callback=result_callback)
+        self.register_start_quote_stream(symbol,instance_IntervalRunner)
+        
+    def create_quote_stream_options_price_data(self, interval_secs:int, symbol:str, result_callback=None ):
+        
+        instance_IntervalRunner = IntervalRunner(interval_secs=interval_secs, target_func=self.get_options_price_data, func_args=(symbol,), result_callback=result_callback)
+        self.register_start_quote_stream(symbol,instance_IntervalRunner)
+        
+    def create_quote_stream_options_chain(self, interval_secs:int, symbol:str,expiration_date:str,option_type, result_callback=None ):
+        
+        instance_IntervalRunner = IntervalRunner(interval_secs=interval_secs, target_func=self.get_options_chain, func_args=(symbol,expiration_date,option_type), result_callback=result_callback)
+        self.register_start_quote_stream(symbol,instance_IntervalRunner)
+    
+    def create_quote_stream_options_chain_greeks(self, interval_secs:int, symbol:str,expiration_date:str,option_type, result_callback=None ):
+        
+        instance_IntervalRunner = IntervalRunner(interval_secs=interval_secs, target_func=self.get_options_chain_greeks, func_args=(symbol,expiration_date,option_type), result_callback=result_callback)
+        self.register_start_quote_stream(symbol,instance_IntervalRunner)
+        
+    def register_start_quote_stream(self,symbol,intervalRunner:IntervalRunner):
+        intervalRunner.start()
+        self.quote_streams[symbol] = intervalRunner
+        
+    def stop_quote_stream(self,symbol):
+        instance_IntervalRunner = self.quote_streams[symbol]
+        instance_IntervalRunner.stop()
+        self.quote_streams.pop(symbol)
+                
+    def update_quote_stream_interval(self,symbol,new_interval:int):
+        instance_IntervalRunner = self.quote_streams[symbol]
+        instance_IntervalRunner.interval = new_interval
+        
+    def stop_quote_stream_all(self):
+        for key in list(self.quote_streams.keys()):
+            self.stop_quote_stream(key)
+            
+    def list_quote_steram(self):
+        return list(self.quote_streams.keys())
