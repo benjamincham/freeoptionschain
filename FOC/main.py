@@ -183,7 +183,13 @@ class FOC:
             df.set_index('expiryDate', inplace=True)
             options_chain_price = df.groupby('expiryDate')
             options_chain_price = options_chain_price.get_group((list(options_chain_price.groups)[0]))
-
+            
+            for int_col in ['c_Openinterest', 'p_Openinterest', 'c_Volume', 'p_Volume']:
+                 options_chain_price[int_col] = options_chain_price[int_col].replace('--', 0).astype(int)
+            
+            for float_col in ['strike', 'p_Last','c_Last','c_Change','p_Change','c_Bid','c_Ask','p_Bid','p_Ask']:
+                options_chain_price[float_col] = options_chain_price[float_col].replace('--', 0).astype(float)
+            
         return options_chain_price
     
     def get_contract_symbol(self,tickersymbol:str, expiration_date:str, option_type,strike_price):
