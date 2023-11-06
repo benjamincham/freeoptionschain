@@ -1,6 +1,7 @@
 from enum import Enum,auto
 
-contract_symbol_delimiter = '---'
+contract_symbol_delimiter = '-'
+
 src_home_url = 'https://www.nasdaq.com/market-activity/stocks'
 
 def get_options_price_url(tickersymbol:str, expiration_date:str,option_type):

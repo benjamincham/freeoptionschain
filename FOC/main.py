@@ -1,5 +1,6 @@
 from .defined import *
 from .db import *
+from .helper import *
 from .intervalrunner import IntervalRunner
 import requests, pytz,threading, concurrent.futures, pytz,json
 import pandas as pd
@@ -9,6 +10,10 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from urllib.parse import unquote
 from json import JSONDecodeError
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
 
 class FOC:
     
@@ -49,21 +54,24 @@ class FOC:
             
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 results = list(executor.map(self.get_options_greeks, options_chain['recordID']))
-                
-            # Concatenate the results into a single DataFrame
-            df_results = pd.concat(results, ignore_index=True)
-
-            # Merge the results DataFrame with the original DataFrame based on index
-            options_chain = options_chain.merge(df_results)
-            options_chain = self.drop_uncessary_columns(options_chain,option_type)
             
-            if self.dbconn and options_chain is not None:
-                df_to_save = options_chain.copy()
-                df_to_save['tickersymbol'] = tickersymbol
-                df_to_save['expiration_date'] = expiration_date
-                df_to_save['timestamp'] = self.get_timestamp()
-                self.dbconn.insert_data("options_chain_greeks",df_to_save)
+            if all(element is not None for element in results):
+                # Concatenate the results into a single DataFrame
+                df_results = pd.concat(results, ignore_index=True)
+
+                # Merge the results DataFrame with the original DataFrame based on index
+                options_chain = options_chain.merge(df_results)
+                options_chain = self.drop_uncessary_columns(options_chain,option_type)
                 
+                if self.dbconn and options_chain is not None:
+                    df_to_save = options_chain.copy()
+                    df_to_save['tickersymbol'] = tickersymbol
+                    df_to_save['expiration_date'] = expiration_date
+                    df_to_save['timestamp'] = self.get_timestamp()
+                    self.dbconn.insert_data("options_chain_greeks",df_to_save)
+            
+                options_chain = cast_columns(options_chain)
+            
             return options_chain
     
     def get_timestamp(self):
@@ -114,7 +122,7 @@ class FOC:
         options_chain_greeks = None
         options_data = self.get_options_data(recordID)
         
-        if options_data is not None:
+        if options_data is not None and options_data['data'] is not None:
             list_greeks=[]
             list_greeks.append(self.extract_greeks(options_data,'optionChainPutData','p_'))
             list_greeks.append(self.extract_greeks(options_data,'optionChainCallData','c_'))
@@ -178,7 +186,9 @@ class FOC:
             df.set_index('expiryDate', inplace=True)
             options_chain_price = df.groupby('expiryDate')
             options_chain_price = options_chain_price.get_group((list(options_chain_price.groups)[0]))
-
+            
+            options_chain_price = cast_columns(options_chain_price)
+            
         return options_chain_price
     
     def get_contract_symbol(self,tickersymbol:str, expiration_date:str, option_type,strike_price):
@@ -188,13 +198,14 @@ class FOC:
         options_price_formatted = int(float(strike_price) * 1000)
         contract_strike = f'{options_price_formatted:08d}'
         
-        return str(contract_tickersymbol+contract_symbol_delimiter+contract_expiration+contract_optiontype+contract_strike)
+        return str(contract_tickersymbol.ljust(6, contract_symbol_delimiter)+contract_expiration+contract_optiontype+contract_strike)
     
     def get_options_data(self,contract_symbol:str):
         options_data = None
-        tickersymbol = contract_symbol.split(contract_symbol_delimiter)[0]
+        tickersymbol = [elem for elem in contract_symbol.split(contract_symbol_delimiter) if elem][0]
         
         url = get_options_contract_url(tickersymbol,contract_symbol)
+
         headers = {
                     'authority': 'api.nasdaq.com',
                     'accept': 'application/json, text/plain, */*',
@@ -256,7 +267,7 @@ class FOC:
         return stocks_data
     
     def get_options_type(self,contract_symbol:str):
-        char_optiontype = contract_symbol.split(contract_symbol_delimiter)[-1][6] #options type symbol is the 7th char, e.g. YYMMddT000000
+        char_optiontype = [elem for elem in contract_symbol.split(contract_symbol_delimiter) if elem][-1][6] #options type symbol is the 7th char, e.g. YYMMddT000000
         char_optiontype = char_optiontype.upper()
         optiontype = OptionType.CALL if char_optiontype == 'C' else OptionType.PUT
         return optiontype
@@ -292,12 +303,32 @@ class FOC:
         stock_price_data = None
         stock_data = self.get_stocks_data(tickersymbol,last_n_price)
         if stock_data is not None:
-            stock_price_data = {}
-            stock_price_data['price'] = json.dumps(self.json_extract_node(stock_data,['data','rows']))
-            
-            price_meta = self.json_extract_node(stock_data,['data','topTable','rows'])[0]
-            stock_price_data.update(price_meta)
-            stock_price_data = pd.DataFrame(stock_price_data, index=[0])
+            try:
+                # Extract price data
+                rows = self.json_extract_node(stock_data, ['data', 'rows'])
+                if not rows:
+                    raise ValueError("No price data available.")
+                price_data = rows[0]
+                
+                # Prepare stock price data dictionary
+                stock_price_data = {
+                    'price': parse_price(price_data.get('nlsPrice')),
+                    'nlsShareVolume': parse_volume(price_data.get('nlsShareVolume')),
+                    'nlsTime': price_data.get('nlsTime')
+                }
+
+                # Extract additional metadata and update the stock price data
+                price_meta = self.json_extract_node(stock_data, ['data', 'topTable', 'rows'])
+                if price_meta:
+                    stock_price_data.update(price_meta[0])
+
+                # Convert to DataFrame
+                stock_price_data = pd.DataFrame([stock_price_data])
+
+            except (ValueError, TypeError, IndexError) as e:
+                # Handle specific errors such as missing data or bad conversions
+                logger.error(f"Error while fetching stock price: {e}")
+                # Depending on the use case, you might want to return None or re-raise the exception
 
         return stock_price_data
     
