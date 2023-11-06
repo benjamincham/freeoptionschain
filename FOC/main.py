@@ -1,5 +1,6 @@
 from .defined import *
 from .db import *
+from .helper import *
 from .intervalrunner import IntervalRunner
 import requests, pytz,threading, concurrent.futures, pytz,json
 import pandas as pd
@@ -9,6 +10,10 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from urllib.parse import unquote
 from json import JSONDecodeError
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
 
 class FOC:
     
@@ -292,12 +297,32 @@ class FOC:
         stock_price_data = None
         stock_data = self.get_stocks_data(tickersymbol,last_n_price)
         if stock_data is not None:
-            stock_price_data = {}
-            stock_price_data['price'] = json.dumps(self.json_extract_node(stock_data,['data','rows']))
-            
-            price_meta = self.json_extract_node(stock_data,['data','topTable','rows'])[0]
-            stock_price_data.update(price_meta)
-            stock_price_data = pd.DataFrame(stock_price_data, index=[0])
+            try:
+                # Extract price data
+                rows = self.json_extract_node(stock_data, ['data', 'rows'])
+                if not rows:
+                    raise ValueError("No price data available.")
+                price_data = rows[0]
+                
+                # Prepare stock price data dictionary
+                stock_price_data = {
+                    'price': parse_price(price_data.get('nlsPrice')),
+                    'nlsShareVolume': parse_volume(price_data.get('nlsShareVolume')),
+                    'nlsTime': price_data.get('nlsTime')
+                }
+
+                # Extract additional metadata and update the stock price data
+                price_meta = self.json_extract_node(stock_data, ['data', 'topTable', 'rows'])
+                if price_meta:
+                    stock_price_data.update(price_meta[0])
+
+                # Convert to DataFrame
+                stock_price_data = pd.DataFrame([stock_price_data])
+
+            except (ValueError, TypeError, IndexError) as e:
+                # Handle specific errors such as missing data or bad conversions
+                logger.error(f"Error while fetching stock price: {e}")
+                # Depending on the use case, you might want to return None or re-raise the exception
 
         return stock_price_data
     
