@@ -36,8 +36,6 @@ setup(
 
     packages=['FOC'],
     
-    package_data={'FOC': ['db.cpython-38-x86_64-linux-gnu.so','db.cp38-win_amd64.pyd']},
-
     install_requires=[
         'requests',
         'pandas',
@@ -46,11 +44,9 @@ setup(
         'pytz',
         'urllib3',
         'build',
-        'cython',
     ],
     setup_requires=[
         'build',
-        'cython',
     ],
     python_requires='>=3.6, <4',
 
